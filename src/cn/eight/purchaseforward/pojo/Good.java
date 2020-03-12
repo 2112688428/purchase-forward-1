@@ -6,6 +6,15 @@ public class Good {
     private String goodtype;
     private Double price;
     private String pic;//上传的商品文件的名称
+    Integer amount;
+
+    public Integer getAmount() {
+        return amount;
+    }
+
+    public void setAmount(Integer amount) {
+        this.amount = amount;
+    }
 
     public Good(){}
     public Good(int id, String goodname, String goodtype, Double price, String pic) {

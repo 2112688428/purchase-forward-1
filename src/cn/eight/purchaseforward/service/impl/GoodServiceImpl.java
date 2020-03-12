@@ -1,6 +1,7 @@
 package cn.eight.purchaseforward.service.impl;
 
 import cn.eight.purchaseforward.dao.GoodDao;
+import cn.eight.purchaseforward.pojo.CarBean;
 import cn.eight.purchaseforward.pojo.Good;
 import cn.eight.purchaseforward.service.GoodService;
 
@@ -8,33 +9,19 @@ import java.util.List;
 
 public class GoodServiceImpl implements GoodService {
     private GoodDao goodDao = new GoodDao();
+
     @Override
-    public boolean addGood(Good good) {
-        return goodDao.insertGood(good);
+    public List<String> findAllGoodType() {
+        return goodDao.queryGoodType();
     }
 
     @Override
-    public List<Good> findGoodByCriteria(Good good) {
-        return goodDao.queryGoodByCriteria(good);
+    public List<Good> findGoodsByType(String goodType) {
+        return goodDao.queryGoodByType(goodType);
     }
 
     @Override
-    public List<Good> findGoodAll(int pageNow, int pageSize) {
-        return goodDao.queryGoodAll(pageNow, pageSize);
-    }
-
-    @Override
-    public int findTotalRecord() {
-        return goodDao.queryTotalRecord();
-    }
-
-    @Override
-    public boolean modifyGood(Good good) {
-        return goodDao.updateGood(good);
-    }
-
-    @Override
-    public boolean removeGood(int id) {
-        return goodDao.deleteGood(id);
+    public List<Good> findCars(CarBean carBean) {
+        return goodDao.queryCarBean(carBean);
     }
 }

@@ -1,5 +1,6 @@
 package cn.eight.purchaseforward.dao;
 
+import cn.eight.purchaseforward.pojo.CarBean;
 import cn.eight.purchaseforward.pojo.Good;
 import cn.eight.purchaseforward.util.DbPool;
 
@@ -9,112 +10,40 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class GoodDao {
     private BasicDao dao = new BasicDao();
-    public boolean insertGood(Good good){
-        boolean result = false;
-        String sql = "insert into good(goodname,goodtype,price,pic) VALUES(?,?,?,?)";
-        PreparedStatement pst = null;
-        Connection con = DbPool.getConnection();
-        try {
-            con.setAutoCommit(false);
-            pst = con.prepareStatement(sql);
-            dao.execUpdate(con,pst,good.getGoodname(),good.getGoodtype(),good.getPrice(),good.getPic());
-            con.commit();
-            result = true;
-        } catch (SQLException e) {
-            try {
-                con.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
-            e.printStackTrace();
-        }finally {
-            dao.releaseResource(null,pst,con);
-        }
-        return result;
-    }
 
-    public boolean updateGood(Good good){
-        boolean result = false;
-        String sql = "update good set goodname=?,goodtype=?,price=? where id=?";
-        PreparedStatement pst = null;
-        Connection con = DbPool.getConnection();
-        try {
-            con.setAutoCommit(false);
-            pst = con.prepareStatement(sql);
-            dao.execUpdate(con,pst,good.getGoodname(),good.getGoodtype(),good.getPrice(),good.getId());
-            con.commit();
-            result = true;
-        } catch (SQLException e) {
-            try {
-                con.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
-            e.printStackTrace();
-        }finally {
-            dao.releaseResource(null,pst,con);
-        }
-        return result;
-    }
-
-    public boolean deleteGood(int id){
-        boolean result = false;
-        String sql = "delete from good where id=?";
-        PreparedStatement pst = null;
-        Connection con = DbPool.getConnection();
-        try {
-            con.setAutoCommit(false);
-            pst = con.prepareStatement(sql);
-            dao.execUpdate(con,pst,id);
-            con.commit();
-            result = true;
-        } catch (SQLException e) {
-            try {
-                con.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
-            e.printStackTrace();
-        }finally {
-            dao.releaseResource(null,pst,con);
-        }
-        return result;
-    }
-
-    public List<Good> queryGoodByCriteria(Good good){
-        String sql = "select id,goodname,goodtype,price from good";
-        String criteria = "";
-        //针对是否填写了条件值分别进行处理，构造查询条件的串
-        if(good.getId()!=-1){//有具体的数字
-           criteria = "id="+good.getId();
-        }
-        if(!good.getGoodname().trim().isEmpty()){
-            if(criteria.isEmpty()){
-                criteria+=" goodname like '%"+good.getGoodname()+"%'";
-            }else{
-                criteria+=" and goodname like '%"+good.getGoodname()+"%'";
-            }
-        }
-        if(!good.getGoodtype().trim().isEmpty()){
-            if(criteria.isEmpty()){
-                criteria+=" goodtype like '%"+good.getGoodtype()+"%'";
-            }else{
-                criteria+=" and goodtype like '%"+good.getGoodtype()+"%'";
-            }
-        }
-        //生成完整的sql
-        if(!criteria.isEmpty()){
-            sql+=" where "+criteria;
-        }
+    public List<String> queryGoodType(){
+        String sql = "select DISTINCT goodtype from good order by goodtype";
         PreparedStatement pst = null;
         ResultSet rs = null;
         Connection con = DbPool.getConnection();
         try {
             pst = con.prepareStatement(sql);
             rs = dao.execQuery(con, pst, null);
+            List<String> goodTypeList = new ArrayList<>();
+            while(rs!=null&&rs.next()){
+                goodTypeList.add(rs.getString(1));
+            }
+            return goodTypeList;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            dao.releaseResource(rs,pst,con);
+        }
+        return null;
+    }
+
+    public List<Good> queryGoodByType(String goodType){
+        String sql = "select * from good where goodtype=? order by id limit ?,?";
+        PreparedStatement pst = null;
+        ResultSet rs = null;
+        Connection con = DbPool.getConnection();
+        try {
+            pst = con.prepareStatement(sql);
+            rs = dao.execQuery(con, pst,goodType,0,20);
             List<Good> goodList = new ArrayList<>();
             while(rs!=null&&rs.next()){
                 Good goodBean = new Good();
@@ -122,6 +51,7 @@ public class GoodDao {
                 goodBean.setGoodname(rs.getString(2));
                 goodBean.setGoodtype(rs.getString(3));
                 goodBean.setPrice(rs.getDouble(4));
+                goodBean.setPic(rs.getString(5));
                 goodList.add(goodBean);
             }
             return goodList;
@@ -133,21 +63,38 @@ public class GoodDao {
         return null;
     }
 
-    public List<Good> queryGoodAll(int pageNow,int pageSize){
-        String sql = "select * from good order by id LIMIT ? ,?";
+    public List<Good> queryCarBean(CarBean carBean){
+        List<Good> goodList = new ArrayList<>();
+        Map<Integer, Integer> car = carBean.getCar();
+        //从map中取出所有的商品id
+        StringBuilder ids = new StringBuilder();
+        for (Map.Entry<Integer,Integer> entry:car.entrySet()) {
+            Integer id = entry.getKey();
+            ids.append(id.toString()).append(",");
+        }
+        String idsStr = ids.toString();
+        if(!idsStr.isEmpty()){//去掉最后的逗号
+            int pos = idsStr.lastIndexOf(",");
+            idsStr = idsStr.substring(0,pos);
+        }else{
+            return goodList;
+        }
+
+        String sql = "select * from good where id in ("+idsStr+")";
         PreparedStatement pst = null;
         ResultSet rs = null;
         Connection con = DbPool.getConnection();
         try {
             pst = con.prepareStatement(sql);
-            rs = dao.execQuery(con, pst, (pageNow-1)*pageSize,pageSize);
-            List<Good> goodList = new ArrayList<>();
+            rs = dao.execQuery(con, pst,null);
+            goodList = new ArrayList<>();
             while(rs!=null&&rs.next()){
                 Good goodBean = new Good();
                 goodBean.setId(rs.getInt(1));
                 goodBean.setGoodname(rs.getString(2));
-                goodBean.setGoodtype(rs.getString(3));
                 goodBean.setPrice(rs.getDouble(4));
+                //存放购物车中的数量
+                goodBean.setAmount(car.get(rs.getInt(1)));
                 goodList.add(goodBean);
             }
             return goodList;
@@ -157,27 +104,6 @@ public class GoodDao {
             dao.releaseResource(rs,pst,con);
         }
         return null;
-    }
-
-    public int queryTotalRecord(){
-        int result = 0;
-        String sql = "select count(*) from good";
-        PreparedStatement pst = null;
-        ResultSet rs = null;
-        Connection con = DbPool.getConnection();
-        try {
-            pst = con.prepareStatement(sql);
-            rs = dao.execQuery(con, pst, null);
-            if(rs!=null&&rs.next()){
-                result = rs.getInt(1);
-            }
-            return result;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }finally {
-            dao.releaseResource(rs,pst,con);
-        }
-        return 0;
     }
 
 

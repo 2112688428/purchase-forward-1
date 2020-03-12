@@ -1,14 +1,13 @@
 package cn.eight.purchaseforward.service;
 
+import cn.eight.purchaseforward.pojo.CarBean;
 import cn.eight.purchaseforward.pojo.Good;
 
 import java.util.List;
 
 public interface GoodService {
-    boolean addGood(Good good);
-    List<Good> findGoodByCriteria(Good good);
-    List<Good> findGoodAll(int pageNow,int pageSize);
-    int findTotalRecord();
-    boolean modifyGood(Good good);
-    boolean removeGood(int id);
+    List<String> findAllGoodType();
+    List<Good> findGoodsByType(String goodType);
+    List<Good> findCars(CarBean carBean);
+
 }
